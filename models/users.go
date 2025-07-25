@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+
 	"github.com/justmamadou/rest-api-golang/db"
 	"github.com/justmamadou/rest-api-golang/utils"
 )
@@ -31,4 +33,24 @@ func (u User) Signup() error {
 	u.ID = userId
 
 	return err
+}
+
+func (u *User) Validate() error {
+	query := "SELECT id, password FROM users WHERE email = ?"
+	row := db.DB.QueryRow(query, u.Email)
+
+	var retrievedPassword string
+	err := row.Scan(&u.ID, &retrievedPassword)
+
+	if err != nil {
+		return errors.New("Credentials invalid")
+	}
+
+	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedPassword)
+
+	if !passwordIsValid {
+		return errors.New("Credentials invalid")
+	}
+
+	return nil
 }

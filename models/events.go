@@ -12,10 +12,10 @@ type Event struct {
 	Description string
 	Location    string
 	DateTime    time.Time
-	UserID      int
+	UserID      int64
 }
 
-func (e Event) Save() error {
+func (e *Event) Save() error {
 	// Later: add it to a database
 	query := `
 	INSERT INTO events (name, description, location, datetime, user_id)
