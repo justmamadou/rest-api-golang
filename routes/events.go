@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/justmamadou/rest-api-golang/models"
-	"github.com/justmamadou/rest-api-golang/utils"
 )
 
 func getEvents(c *gin.Context) {
@@ -19,20 +18,10 @@ func getEvents(c *gin.Context) {
 }
 
 func createEvent(c *gin.Context) {
-	token := c.Request.Header.Get("Authorization")
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized !"})
-		return
-	}
-
-	userId, err := utils.VerifyToken(token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Unauthorized !"})
-		return
-	}
+	userId := c.GetInt64("userId")
 
 	var event models.Event
-	err = c.ShouldBindJSON(&event)
+	err := c.ShouldBindJSON(&event)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not parse request data"})
 		return
@@ -69,9 +58,16 @@ func updateEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
-	_, err = models.GetEventByID(eventID)
+	userId := c.GetInt64("userId")
+	event, err := models.GetEventByID(eventID)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve event"})
+		return
+	}
+
+	if event.UserID != userId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update this event"})
 		return
 	}
 
@@ -100,9 +96,15 @@ func deleteEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID"})
 		return
 	}
-	_, err = models.GetEventByID(eventID)
+	userId := c.GetInt64("userId")
+	event, err := models.GetEventByID(eventID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not retrieve event"})
+		return
+	}
+
+	if event.UserID != userId {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to delete this event"})
 		return
 	}
 
